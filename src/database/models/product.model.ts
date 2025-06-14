@@ -6,6 +6,8 @@ import {
   PrimaryKey,
   Unique,
   AllowNull,
+  Min,
+  Max,
 } from 'sequelize-typescript';
 
 @Table({
@@ -30,21 +32,26 @@ export class Product extends Model {
   @Column(DataType.STRING(32))
   department: string;
 
+  @Min(0)
   @Column(DataType.INTEGER)
   stock: number;
 
   @Column(DataType.STRING(16))
   color: string;
 
-  @Column(DataType.INTEGER)
+  @Min(0)
+  @Column(DataType.FLOAT)
   price: number;
 
   @Column(DataType.STRING(16))
   material: string;
 
+  @Min(0)
+  @Max(5)
   @Column(DataType.INTEGER)
   ratings: number;
 
+  @Min(0)
   @Column(DataType.INTEGER)
   sales: number;
 }

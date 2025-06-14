@@ -12,10 +12,9 @@ import { CategoriesModule } from './categories/categories.module';
     CategoriesModule,
     SequelizeModule.forRoot({
       dialect: 'sqlite',
-      storage:
-        'C:\\Users\\FactualInsanity\\Documents\\GitHub Projects\\key-app\\src\\database\\products.sqlite3',
+      storage: 'products.sqlite3',
       autoLoadModels: true,
-      synchronize: true,
+      synchronize: false,
     }),
     ScheduleModule.forRoot(),
   ],

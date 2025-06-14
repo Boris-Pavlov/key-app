@@ -29,7 +29,7 @@ module.exports = {
         type: Sequelize.STRING(16),
       },
       price: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.FLOAT,
       },
       material: {
         type: Sequelize.STRING(16),
