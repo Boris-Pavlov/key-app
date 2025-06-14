@@ -12,10 +12,10 @@ import {
   timestamps: true,
 })
 export class Product extends Model {
-  @Column(DataType.STRING(32))
   @PrimaryKey
   @Unique
   @AllowNull(false)
+  @Column(DataType.STRING(32))
   id: string = undefined;
 
   @Column(DataType.STRING(64))
