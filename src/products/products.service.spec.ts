@@ -3,10 +3,12 @@ import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 import { BadRequestException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/sequelize';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { ProductsService } from './products.service';
 
 import { Product } from '../database/models/product.model';
+import { EVENTS } from '../common/constants';
 
 const mockProduct = {
   _id: '1',
@@ -51,7 +53,7 @@ const mockTransaction = {
 };
 
 const mockDbModel = {
-  findAndCountAll: jest.fn(),
+  findAll: jest.fn(),
   bulkCreate: jest.fn(),
   sequelize: {
     transaction: () => mockTransaction,
@@ -60,6 +62,10 @@ const mockDbModel = {
 
 const mockHttpService = {
   get: jest.fn(),
+};
+
+const mockEventEmitter = {
+  emit: jest.fn(),
 };
 
 describe('ProductsService', () => {
@@ -76,6 +82,10 @@ describe('ProductsService', () => {
         {
           provide: HttpService,
           useValue: mockHttpService,
+        },
+        {
+          provide: EventEmitter2,
+          useValue: mockEventEmitter,
         },
       ],
     }).compile();
@@ -101,6 +111,7 @@ describe('ProductsService', () => {
       await service.startDbSync();
 
       expect(mockHttpService.get).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(EVENTS.DB.SYNCED);
       expect(upsertSpy).toHaveBeenCalledWith([mappedProduct]);
     });
 
@@ -128,15 +139,14 @@ describe('ProductsService', () => {
   describe('findAll', () => {
     it('should return paginated products', async () => {
       const paginationParams = { page: 1, limit: 10 };
-      const mockRows = [{ id: '1', name: 'product1' }];
+      const mockRows = [{ id: '1', name: 'Test Product' }];
       const mockCount = 1;
 
-      mockDbModel.findAndCountAll.mockResolvedValueOnce({
-        rows: mockRows,
-        count: mockCount,
-      });
+      mockHttpService.get.mockReturnValueOnce(of(mockExternalResponse));
+      mockDbModel.findAll.mockResolvedValueOnce(mockRows);
 
-      const result = await service.findAll(paginationParams);
+      await service.startDbSync();
+      const result = service.findAll(paginationParams);
 
       expect(result).toEqual({
         items: mockRows,

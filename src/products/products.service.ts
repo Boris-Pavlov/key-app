@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { Cron } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/sequelize';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
 
@@ -11,16 +12,19 @@ import { ExternalProductResponse } from './interfaces/external-product-response.
 
 import { Product } from '../database/models/product.model';
 import { PaginationParams } from '../common/dto/pagination-params.dto';
+import { EVENTS } from '../common/constants';
 
 @Injectable()
 export class ProductsService {
   private syncInProgress: boolean = false;
+  private inMemoryProductsRepository: Array<Product> = [];
   private readonly logger = new Logger(ProductsService.name);
 
   constructor(
     @InjectModel(Product)
     private readonly productsRepository: typeof Product,
     private readonly httpService: HttpService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   @Cron('0 0,12 * * *')
@@ -28,6 +32,7 @@ export class ProductsService {
     if (this.syncInProgress) {
       throw new BadRequestException('Sync already in progress.');
     }
+
     this.syncInProgress = true;
 
     try {
@@ -40,11 +45,10 @@ export class ProductsService {
           break;
         }
       }
-
+    } finally {
+      this.inMemoryProductsRepository = await this.productsRepository.findAll();
       this.syncInProgress = false;
-    } catch (e) {
-      this.syncInProgress = false;
-      throw e;
+      this.eventEmitter.emit(EVENTS.DB.SYNCED);
     }
   }
 
@@ -94,25 +98,6 @@ export class ProductsService {
         transaction,
       });
       await transaction.commit();
-      // await this.productsRepository.sequelize.transaction(
-      //   async (transaction) => {
-      //     return this.productsRepository.bulkCreate(products, {
-      //       updateOnDuplicate: [
-      //         'imgPath',
-      //         'productType',
-      //         'displayName',
-      //         'department',
-      //         'stock',
-      //         'color',
-      //         'price',
-      //         'material',
-      //         'ratings',
-      //         'sales',
-      //       ],
-      //       transaction,
-      //     });
-      //   },
-      // );
     } catch (err) {
       await transaction.rollback();
       this.logger.error(err);
@@ -120,22 +105,21 @@ export class ProductsService {
     }
   }
 
-  async findAll(
-    paginationParams: PaginationParams,
-  ): Promise<PaginatedProducts> {
+  findAll(paginationParams: PaginationParams): PaginatedProducts {
     const { limit = 10, page = 1 } = paginationParams;
 
-    const { rows, count } = await this.productsRepository.findAndCountAll({
-      limit,
-      offset: (page - 1) * limit,
-    });
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit - 1;
+
+    const items = this.inMemoryProductsRepository.slice(startIndex, endIndex);
 
     return {
-      items: rows,
-      total: count,
+      items,
+      total: this.inMemoryProductsRepository.length,
       limit,
       page,
-      nextPage: count > page * limit ? page + 1 : null,
+      nextPage:
+        this.inMemoryProductsRepository.length > page * limit ? page + 1 : null,
     };
   }
 

@@ -22,9 +22,7 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
-  async findAll(
-    @Query() paginationParams: PaginationParams,
-  ): Promise<PaginatedCategories> {
+  findAll(@Query() paginationParams: PaginationParams): PaginatedCategories {
     return this.categoriesService.findAll(paginationParams);
   }
 }

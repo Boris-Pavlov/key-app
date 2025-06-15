@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SequelizeModule } from '@nestjs/sequelize';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+
 import { ProductsModule } from './products/products.module';
 import { CategoriesModule } from './categories/categories.module';
 
@@ -17,6 +19,7 @@ import { CategoriesModule } from './categories/categories.module';
       synchronize: false,
     }),
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
   ],
 })
 export class AppModule {}

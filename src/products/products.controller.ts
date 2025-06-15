@@ -28,9 +28,7 @@ export class ProductsController {
   }
 
   @Get()
-  async findAll(
-    @Query() paginationParams: PaginationParams,
-  ): Promise<PaginatedProducts> {
+  findAll(@Query() paginationParams: PaginationParams): PaginatedProducts {
     return this.producstsService.findAll(paginationParams);
   }
 }
